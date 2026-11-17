@@ -24,11 +24,11 @@ class FakePeriodRepository : PeriodRepository {
     private val _logs = MutableStateFlow<List<DailyLog>>(emptyList())
     override val logsFlow: StateFlow<List<DailyLog>> = _logs.asStateFlow()
 
-    override suspend fun saveDailyLog(date: LocalDate, flowIntensity: FlowIntensity, notes: String?) {
+    override suspend fun saveDailyLog(date: LocalDate, flowIntensity: FlowIntensity) {
         val current = _logs.value.toMutableList()
         current.removeAll { it.date == date }
         if (flowIntensity != FlowIntensity.NONE) {
-            current.add(DailyLog(date, flowIntensity, notes))
+            current.add(DailyLog(date, flowIntensity))
         }
         _logs.value = current
     }
@@ -79,14 +79,13 @@ class PeriodViewModelTest {
     fun `saveFlowForSelectedDate updates UI state and logs`() = runTest {
         val targetDate = LocalDate.of(2026, 4, 15)
         viewModel.selectDate(targetDate)
-        viewModel.saveFlowForSelectedDate(FlowIntensity.HEAVY, notes = "Cramps and fatigue")
+        viewModel.saveFlowForSelectedDate(FlowIntensity.HEAVY)
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertEquals(targetDate, state.selectedDate)
         assertEquals(1, state.dailyLogs.size)
         assertEquals(FlowIntensity.HEAVY, state.selectedLog?.flowIntensity)
-        assertEquals("Cramps and fatigue", state.selectedLog?.notes)
     }
 
     @Test

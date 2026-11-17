@@ -12,8 +12,7 @@ enum class FlowIntensity {
 
 data class DailyLog(
     val date: LocalDate,
-    val flowIntensity: FlowIntensity = FlowIntensity.NONE,
-    val notes: String? = null
+    val flowIntensity: FlowIntensity = FlowIntensity.NONE
 ) {
     val isPeriodDay: Boolean
         get() = flowIntensity != FlowIntensity.NONE

@@ -40,7 +40,6 @@ import com.example.periodtracker.data.model.FlowIntensity
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,14 +49,13 @@ import androidx.compose.runtime.setValue
 fun DailyFlowDialog(
     selectedDate: LocalDate,
     currentLog: DailyLog?,
-    onSaveFlow: (FlowIntensity, String?) -> Unit,
+    onSaveFlow: (FlowIntensity) -> Unit,
     onDeleteLog: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val dateStr = selectedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy"))
     val currentFlow = currentLog?.flowIntensity ?: FlowIntensity.NONE
     var selectedFlowState by remember(currentLog) { mutableStateOf(currentFlow) }
-    var notesText by remember(currentLog) { mutableStateOf(currentLog?.notes ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -92,7 +90,7 @@ fun DailyFlowDialog(
                     isSelected = (selectedFlowState == FlowIntensity.HEAVY),
                     onClick = {
                         selectedFlowState = FlowIntensity.HEAVY
-                        onSaveFlow(FlowIntensity.HEAVY, notesText.ifBlank { null })
+                        onSaveFlow(FlowIntensity.HEAVY)
                     }
                 )
 
@@ -103,7 +101,7 @@ fun DailyFlowDialog(
                     isSelected = (selectedFlowState == FlowIntensity.MEDIUM),
                     onClick = {
                         selectedFlowState = FlowIntensity.MEDIUM
-                        onSaveFlow(FlowIntensity.MEDIUM, notesText.ifBlank { null })
+                        onSaveFlow(FlowIntensity.MEDIUM)
                     }
                 )
 
@@ -114,7 +112,7 @@ fun DailyFlowDialog(
                     isSelected = (selectedFlowState == FlowIntensity.LIGHT),
                     onClick = {
                         selectedFlowState = FlowIntensity.LIGHT
-                        onSaveFlow(FlowIntensity.LIGHT, notesText.ifBlank { null })
+                        onSaveFlow(FlowIntensity.LIGHT)
                     }
                 )
 
@@ -125,7 +123,7 @@ fun DailyFlowDialog(
                     isSelected = (selectedFlowState == FlowIntensity.UNKNOWN),
                     onClick = {
                         selectedFlowState = FlowIntensity.UNKNOWN
-                        onSaveFlow(FlowIntensity.UNKNOWN, notesText.ifBlank { null })
+                        onSaveFlow(FlowIntensity.UNKNOWN)
                     }
                 )
 
@@ -136,23 +134,8 @@ fun DailyFlowDialog(
                     isSelected = (selectedFlowState == FlowIntensity.NONE),
                     onClick = {
                         selectedFlowState = FlowIntensity.NONE
-                        onSaveFlow(FlowIntensity.NONE, notesText.ifBlank { null })
+                        onSaveFlow(FlowIntensity.NONE)
                     }
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Notes (optional):",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                )
-
-                OutlinedTextField(
-                    value = notesText,
-                    onValueChange = { notesText = it },
-                    placeholder = { Text("Symptoms, mood, notes...") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
                 )
             }
         },
@@ -173,7 +156,7 @@ fun DailyFlowDialog(
                     }
                 }
                 TextButton(
-                    onClick = { onSaveFlow(selectedFlowState, notesText.ifBlank { null }) }
+                    onClick = { onSaveFlow(selectedFlowState) }
                 ) {
                     Text("Save")
                 }

@@ -131,10 +131,10 @@ class PeriodViewModel(
         _displayedMonth.value = YearMonth.now()
     }
 
-    fun saveFlowForSelectedDate(flowIntensity: FlowIntensity, notes: String? = null) {
+    fun saveFlowForSelectedDate(flowIntensity: FlowIntensity) {
         val date = _selectedDate.value
         viewModelScope.launch {
-            repository.saveDailyLog(date, flowIntensity, notes)
+            repository.saveDailyLog(date, flowIntensity)
             _isLogDialogOpen.value = false
         }
     }

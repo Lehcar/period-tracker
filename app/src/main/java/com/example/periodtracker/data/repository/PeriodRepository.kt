@@ -12,7 +12,7 @@ import java.time.LocalDate
 
 interface PeriodRepository {
     val logsFlow: StateFlow<List<DailyLog>>
-    suspend fun saveDailyLog(date: LocalDate, flowIntensity: FlowIntensity, notes: String? = null)
+    suspend fun saveDailyLog(date: LocalDate, flowIntensity: FlowIntensity)
     suspend fun deleteDailyLog(date: LocalDate)
     suspend fun deleteAllData()
     suspend fun refreshLogs()
@@ -37,12 +37,12 @@ class PeriodRepositoryImpl(
         }
     }
 
-    override suspend fun saveDailyLog(date: LocalDate, flowIntensity: FlowIntensity, notes: String?) {
+    override suspend fun saveDailyLog(date: LocalDate, flowIntensity: FlowIntensity) {
         withContext(Dispatchers.IO) {
-            if (flowIntensity == FlowIntensity.NONE && notes.isNullOrBlank()) {
+            if (flowIntensity == FlowIntensity.NONE) {
                 dbHelper.deleteDailyLog(date)
             } else {
-                dbHelper.upsertDailyLog(DailyLog(date = date, flowIntensity = flowIntensity, notes = notes))
+                dbHelper.upsertDailyLog(DailyLog(date = date, flowIntensity = flowIntensity))
             }
             val logs = dbHelper.getAllDailyLogs()
             _logsFlow.value = logs

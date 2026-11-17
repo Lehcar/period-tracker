@@ -6,22 +6,13 @@ import java.time.LocalDate
 
 object CsvManager {
 
-    private const val HEADER = "Date,FlowIntensity,Notes"
-
-    private fun csvField(value: String): String {
-        return if (value.any { it == ',' || it == '"' || it == '\n' || it == '\r' }) {
-            "\"${value.replace("\"", "\"\"")}\""
-        } else {
-            value
-        }
-    }
+    private const val HEADER = "Date,FlowIntensity"
 
     fun generateCsv(logs: List<DailyLog>): String {
         val builder = StringBuilder()
         builder.append(HEADER).append("\n")
         logs.sortedBy { it.date }.forEach { log ->
-            val notesField = csvField(log.notes ?: "")
-            builder.append("${log.date},${log.flowIntensity.name},$notesField\n")
+            builder.append("${log.date},${log.flowIntensity.name}\n")
         }
         return builder.toString()
     }
@@ -89,7 +80,6 @@ object CsvManager {
             if (record.size >= 2) {
                 try {
                     val flowStr = record[1].trim()
-                    val notesStr = if (record.size >= 3) record[2].ifEmpty { null } else null
 
                     val date = LocalDate.parse(dateStr)
                     val flow = try {
@@ -98,7 +88,7 @@ object CsvManager {
                         FlowIntensity.NONE
                     }
 
-                    parsedLogs.add(DailyLog(date = date, flowIntensity = flow, notes = notesStr))
+                    parsedLogs.add(DailyLog(date = date, flowIntensity = flow))
                 } catch (e: Exception) {
                     // Skip malformed row
                 }

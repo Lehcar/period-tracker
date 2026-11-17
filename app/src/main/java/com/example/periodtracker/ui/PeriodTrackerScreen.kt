@@ -339,7 +339,7 @@ fun PeriodTrackerScreen(
                 DailyFlowDialog(
                     selectedDate = uiState.selectedDate,
                     currentLog = uiState.selectedLog,
-                    onSaveFlow = { flow, notes -> viewModel.saveFlowForSelectedDate(flow, notes) },
+                    onSaveFlow = { flow -> viewModel.saveFlowForSelectedDate(flow) },
                     onDeleteLog = { viewModel.deleteSelectedDateLog() },
                     onDismiss = { viewModel.closeLogDialog() }
                 )

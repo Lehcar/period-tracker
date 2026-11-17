@@ -22,15 +22,13 @@ class PeriodTrackerDbHelper(context: Context) : SQLiteOpenHelper(
         const val TABLE_DAILY_LOGS = "daily_logs"
         const val COLUMN_DATE = "date"
         const val COLUMN_FLOW = "flow_intensity"
-        const val COLUMN_NOTES = "notes"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
         val createTableSql = """
             CREATE TABLE $TABLE_DAILY_LOGS (
                 $COLUMN_DATE TEXT PRIMARY KEY,
-                $COLUMN_FLOW TEXT NOT NULL,
-                $COLUMN_NOTES TEXT
+                $COLUMN_FLOW TEXT NOT NULL
             )
         """.trimIndent()
         db.execSQL(createTableSql)
@@ -46,7 +44,6 @@ class PeriodTrackerDbHelper(context: Context) : SQLiteOpenHelper(
         val values = ContentValues().apply {
             put(COLUMN_DATE, log.date.toString())
             put(COLUMN_FLOW, log.flowIntensity.name)
-            put(COLUMN_NOTES, log.notes)
         }
         db.insertWithOnConflict(
             TABLE_DAILY_LOGS,
@@ -76,7 +73,7 @@ class PeriodTrackerDbHelper(context: Context) : SQLiteOpenHelper(
         val db = readableDatabase
         val cursor = db.query(
             TABLE_DAILY_LOGS,
-            arrayOf(COLUMN_DATE, COLUMN_FLOW, COLUMN_NOTES),
+            arrayOf(COLUMN_DATE, COLUMN_FLOW),
             "$COLUMN_DATE = ?",
             arrayOf(date.toString()),
             null,
@@ -86,13 +83,12 @@ class PeriodTrackerDbHelper(context: Context) : SQLiteOpenHelper(
         cursor.use {
             if (it.moveToFirst()) {
                 val flowStr = it.getString(it.getColumnIndexOrThrow(COLUMN_FLOW))
-                val notes = it.getString(it.getColumnIndexOrThrow(COLUMN_NOTES))
                 val flow = try {
                     FlowIntensity.valueOf(flowStr)
                 } catch (e: Exception) {
                     FlowIntensity.NONE
                 }
-                return DailyLog(date = date, flowIntensity = flow, notes = notes)
+                return DailyLog(date = date, flowIntensity = flow)
             }
         }
         return null
@@ -103,7 +99,7 @@ class PeriodTrackerDbHelper(context: Context) : SQLiteOpenHelper(
         val list = mutableListOf<DailyLog>()
         val cursor = db.query(
             TABLE_DAILY_LOGS,
-            arrayOf(COLUMN_DATE, COLUMN_FLOW, COLUMN_NOTES),
+            arrayOf(COLUMN_DATE, COLUMN_FLOW),
             null,
             null,
             null,
@@ -114,14 +110,13 @@ class PeriodTrackerDbHelper(context: Context) : SQLiteOpenHelper(
             while (it.moveToNext()) {
                 val dateStr = it.getString(it.getColumnIndexOrThrow(COLUMN_DATE))
                 val flowStr = it.getString(it.getColumnIndexOrThrow(COLUMN_FLOW))
-                val notes = it.getString(it.getColumnIndexOrThrow(COLUMN_NOTES))
                 val date = LocalDate.parse(dateStr)
                 val flow = try {
                     FlowIntensity.valueOf(flowStr)
                 } catch (e: Exception) {
                     FlowIntensity.NONE
                 }
-                list.add(DailyLog(date = date, flowIntensity = flow, notes = notes))
+                list.add(DailyLog(date = date, flowIntensity = flow))
             }
         }
         return list
