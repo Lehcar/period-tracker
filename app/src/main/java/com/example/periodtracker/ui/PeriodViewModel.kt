@@ -17,9 +17,13 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
+import com.example.periodtracker.data.model.NotificationPreferences
+import com.example.periodtracker.data.preferences.PreferencesManager
+
 enum class TrackerTab {
     CALENDAR,
-    STATISTICS
+    STATISTICS,
+    NOTIFICATIONS
 }
 
 data class PeriodUiState(
@@ -29,14 +33,16 @@ data class PeriodUiState(
     val stats: PeriodStats = PeriodStats(null, null, null, null, 0, 0),
     val showWipeConfirmDialog: Boolean = false,
     val isLogDialogOpen: Boolean = false,
-    val currentTab: TrackerTab = TrackerTab.CALENDAR
+    val currentTab: TrackerTab = TrackerTab.CALENDAR,
+    val notificationPreferences: NotificationPreferences = NotificationPreferences()
 ) {
     val selectedLog: DailyLog?
         get() = dailyLogs.find { it.date == selectedDate }
 }
 
 class PeriodViewModel(
-    private val repository: PeriodRepository
+    private val repository: PeriodRepository,
+    private val preferencesManager: PreferencesManager? = null
 ) : ViewModel() {
 
     private val _selectedDate = MutableStateFlow(LocalDate.now())
@@ -44,6 +50,10 @@ class PeriodViewModel(
     private val _showWipeConfirmDialog = MutableStateFlow(false)
     private val _isLogDialogOpen = MutableStateFlow(false)
     private val _currentTab = MutableStateFlow(TrackerTab.CALENDAR)
+    private val _defaultNotifPrefs = MutableStateFlow(NotificationPreferences())
+
+    private val notifPrefsFlow: StateFlow<NotificationPreferences> =
+        preferencesManager?.notificationPreferences ?: _defaultNotifPrefs
 
     val uiState: StateFlow<PeriodUiState> = combine(
         _selectedDate,
@@ -51,7 +61,8 @@ class PeriodViewModel(
         repository.logsFlow,
         _showWipeConfirmDialog,
         _isLogDialogOpen,
-        _currentTab
+        _currentTab,
+        notifPrefsFlow
     ) { flows: Array<Any?> ->
         val date = flows[0] as LocalDate
         val month = flows[1] as YearMonth
@@ -60,6 +71,7 @@ class PeriodViewModel(
         val showWipe = flows[3] as Boolean
         val showLog = flows[4] as Boolean
         val tab = flows[5] as TrackerTab
+        val notifPrefs = flows[6] as NotificationPreferences
 
         val stats = PeriodAnalytics.computeStats(logs, LocalDate.now())
         PeriodUiState(
@@ -69,13 +81,22 @@ class PeriodViewModel(
             stats = stats,
             showWipeConfirmDialog = showWipe,
             isLogDialogOpen = showLog,
-            currentTab = tab
+            currentTab = tab,
+            notificationPreferences = notifPrefs
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = PeriodUiState()
     )
+
+    fun updateNotificationPreferences(enabled: Boolean, daysBefore: Int) {
+        if (preferencesManager != null) {
+            preferencesManager.saveNotificationPreferences(enabled, daysBefore)
+        } else {
+            _defaultNotifPrefs.value = NotificationPreferences(enabled = enabled, daysBefore = daysBefore)
+        }
+    }
 
     fun selectTab(tab: TrackerTab) {
         _currentTab.value = tab
@@ -155,10 +176,11 @@ class PeriodViewModel(
 }
 
 class PeriodViewModelFactory(
-    private val repository: PeriodRepository
+    private val repository: PeriodRepository,
+    private val preferencesManager: PreferencesManager? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return PeriodViewModel(repository) as T
+        return PeriodViewModel(repository, preferencesManager) as T
     }
 }

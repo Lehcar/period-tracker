@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.example.periodtracker.data.model.FlowIntensity
 import com.example.periodtracker.ui.components.DailyFlowDialog
 import com.example.periodtracker.ui.components.MonthCalendarView
+import com.example.periodtracker.ui.components.NotificationSettingsScreenContent
 import com.example.periodtracker.ui.components.PeriodEstimateCard
 import com.example.periodtracker.ui.components.StatisticsScreenContent
 import com.example.periodtracker.ui.components.WipeDataConfirmDialog
@@ -159,6 +161,22 @@ fun PeriodTrackerScreen(
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
 
+                NavigationDrawerItem(
+                    label = { Text("Notifications", fontWeight = FontWeight.Bold) },
+                    selected = (uiState.currentTab == TrackerTab.NOTIFICATIONS),
+                    onClick = {
+                        viewModel.selectTab(TrackerTab.NOTIFICATIONS)
+                        scope.launch { drawerState.close() }
+                    },
+                    icon = { Icon(imageVector = Icons.Default.Notifications, contentDescription = null) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor = Color(0xFFFCE4EC),
+                        selectedIconColor = Color(0xFFE91E63),
+                        selectedTextColor = Color(0xFFE91E63)
+                    ),
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider(color = Color(0xFFF0F0F0))
                 Spacer(modifier = Modifier.height(8.dp))
@@ -194,6 +212,20 @@ fun PeriodTrackerScreen(
                     icon = { Icon(imageVector = Icons.Default.Edit, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
+
+                NavigationDrawerItem(
+                    label = { Text("Delete All Data", fontWeight = FontWeight.Bold) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        viewModel.requestWipeData()
+                    },
+                    icon = { Icon(imageVector = Icons.Default.Delete, contentDescription = null, tint = Color(0xFFD32F2F)) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        unselectedTextColor = Color(0xFFD32F2F)
+                    ),
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
             }
         }
     ) {
@@ -202,8 +234,13 @@ fun PeriodTrackerScreen(
             topBar = {
                 TopAppBar(
                     title = {
+                        val titleText = when (uiState.currentTab) {
+                            TrackerTab.CALENDAR -> "Calendar"
+                            TrackerTab.STATISTICS -> "Statistics"
+                            TrackerTab.NOTIFICATIONS -> "Notification Settings"
+                        }
                         Text(
-                            text = if (uiState.currentTab == TrackerTab.CALENDAR) "Calendar" else "Statistics",
+                            text = titleText,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF2C1D21)
                         )
@@ -214,15 +251,6 @@ fun PeriodTrackerScreen(
                                 imageVector = Icons.Default.Menu,
                                 contentDescription = "Open Navigation Menu",
                                 tint = Color(0xFF2C1D21)
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { viewModel.requestWipeData() }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete All Data",
-                                tint = Color(0xFFD32F2F)
                             )
                         }
                     },
@@ -270,6 +298,17 @@ fun PeriodTrackerScreen(
                             dailyLogs = uiState.dailyLogs
                         )
                     }
+
+                    TrackerTab.NOTIFICATIONS -> {
+                        // View 3: Notification Settings View
+                        NotificationSettingsScreenContent(
+                            preferences = uiState.notificationPreferences,
+                            stats = uiState.stats,
+                            onUpdatePreferences = { enabled, daysBefore ->
+                                viewModel.updateNotificationPreferences(enabled, daysBefore)
+                            }
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -290,6 +329,10 @@ fun PeriodTrackerScreen(
             if (uiState.showWipeConfirmDialog) {
                 WipeDataConfirmDialog(
                     onConfirm = { viewModel.confirmWipeData() },
+                    onExportFirst = {
+                        viewModel.dismissWipeDialog()
+                        exportLauncher.launch("period_tracker_logs.csv")
+                    },
                     onDismiss = { viewModel.dismissWipeDialog() }
                 )
             }

@@ -197,6 +197,7 @@ private fun FlowOptionCard(
 @Composable
 fun WipeDataConfirmDialog(
     onConfirm: () -> Unit,
+    onExportFirst: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -217,24 +218,51 @@ fun WipeDataConfirmDialog(
             )
         },
         text = {
-            Text(
-                text = "This will permanently delete all your logged period dates, flow intensities, and calculated statistics stored on this device.\n\nThis action cannot be undone.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF424242)
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Are you sure you want to erase all period tracking data from this device? This will permanently delete your logged dates, flow entries, and statistics.\n\nThis action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF424242)
+                )
+                Text(
+                    text = "💡 Tip: We recommend exporting your data to CSV first so you don't lose your history.",
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = Color(0xFFC2185B)
+                )
+            }
         },
         confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Delete Everything", fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = onExportFirst,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63))
+                ) {
+                    Text("Export to CSV First", fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                ) {
+                    Text("Delete Everything", fontWeight = FontWeight.Bold)
+                }
+
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Cancel", color = Color(0xFF424242))
+                }
             }
         },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+        dismissButton = null
     )
 }

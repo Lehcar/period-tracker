@@ -97,6 +97,17 @@ class PeriodViewModelTest {
     }
 
     @Test
+    fun `updateNotificationPreferences updates notification preferences in uiState`() = runTest {
+        assertFalse(viewModel.uiState.value.notificationPreferences.enabled)
+        viewModel.updateNotificationPreferences(enabled = true, daysBefore = 3)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val notifPrefs = viewModel.uiState.value.notificationPreferences
+        assertTrue(notifPrefs.enabled)
+        assertEquals(3, notifPrefs.daysBefore)
+    }
+
+    @Test
     fun `confirmWipeData removes all logs`() = runTest {
         viewModel.selectDate(LocalDate.of(2026, 4, 15))
         viewModel.saveFlowForSelectedDate(FlowIntensity.MEDIUM)
