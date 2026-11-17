@@ -43,6 +43,16 @@ class FakePeriodRepository : PeriodRepository {
         _logs.value = emptyList()
     }
 
+    override suspend fun importDailyLogs(logs: List<DailyLog>): Int {
+        val current = _logs.value.toMutableList()
+        for (log in logs) {
+            current.removeAll { it.date == log.date }
+            current.add(log)
+        }
+        _logs.value = current
+        return logs.size
+    }
+
     override suspend fun refreshLogs() {}
 }
 
@@ -76,6 +86,14 @@ class PeriodViewModelTest {
         assertEquals(targetDate, state.selectedDate)
         assertEquals(1, state.dailyLogs.size)
         assertEquals(FlowIntensity.HEAVY, state.selectedLog?.flowIntensity)
+    }
+
+    @Test
+    fun `selectTab updates currentTab in uiState`() = runTest {
+        assertEquals(TrackerTab.CALENDAR, viewModel.uiState.value.currentTab)
+        viewModel.selectTab(TrackerTab.STATISTICS)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(TrackerTab.STATISTICS, viewModel.uiState.value.currentTab)
     }
 
     @Test

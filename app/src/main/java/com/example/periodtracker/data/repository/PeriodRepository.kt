@@ -16,6 +16,7 @@ interface PeriodRepository {
     suspend fun deleteDailyLog(date: LocalDate)
     suspend fun deleteAllData()
     suspend fun refreshLogs()
+    suspend fun importDailyLogs(logs: List<DailyLog>): Int
 }
 
 class PeriodRepositoryImpl(
@@ -45,6 +46,18 @@ class PeriodRepositoryImpl(
             }
             val logs = dbHelper.getAllDailyLogs()
             _logsFlow.value = logs
+        }
+    }
+
+    override suspend fun importDailyLogs(logs: List<DailyLog>): Int {
+        return withContext(Dispatchers.IO) {
+            var count = 0
+            for (log in logs) {
+                dbHelper.upsertDailyLog(log)
+                count++
+            }
+            _logsFlow.value = dbHelper.getAllDailyLogs()
+            count
         }
     }
 

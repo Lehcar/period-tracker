@@ -17,13 +17,19 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
+enum class TrackerTab {
+    CALENDAR,
+    STATISTICS
+}
+
 data class PeriodUiState(
     val selectedDate: LocalDate = LocalDate.now(),
     val displayedMonth: YearMonth = YearMonth.now(),
     val dailyLogs: List<DailyLog> = emptyList(),
     val stats: PeriodStats = PeriodStats(null, null, null, null, 0, 0),
     val showWipeConfirmDialog: Boolean = false,
-    val isLogDialogOpen: Boolean = false
+    val isLogDialogOpen: Boolean = false,
+    val currentTab: TrackerTab = TrackerTab.CALENDAR
 ) {
     val selectedLog: DailyLog?
         get() = dailyLogs.find { it.date == selectedDate }
@@ -37,14 +43,24 @@ class PeriodViewModel(
     private val _displayedMonth = MutableStateFlow(YearMonth.now())
     private val _showWipeConfirmDialog = MutableStateFlow(false)
     private val _isLogDialogOpen = MutableStateFlow(false)
+    private val _currentTab = MutableStateFlow(TrackerTab.CALENDAR)
 
     val uiState: StateFlow<PeriodUiState> = combine(
         _selectedDate,
         _displayedMonth,
         repository.logsFlow,
         _showWipeConfirmDialog,
-        _isLogDialogOpen
-    ) { date, month, logs, showWipe, showLog ->
+        _isLogDialogOpen,
+        _currentTab
+    ) { flows: Array<Any?> ->
+        val date = flows[0] as LocalDate
+        val month = flows[1] as YearMonth
+        @Suppress("UNCHECKED_CAST")
+        val logs = flows[2] as List<DailyLog>
+        val showWipe = flows[3] as Boolean
+        val showLog = flows[4] as Boolean
+        val tab = flows[5] as TrackerTab
+
         val stats = PeriodAnalytics.computeStats(logs, LocalDate.now())
         PeriodUiState(
             selectedDate = date,
@@ -52,13 +68,18 @@ class PeriodViewModel(
             dailyLogs = logs,
             stats = stats,
             showWipeConfirmDialog = showWipe,
-            isLogDialogOpen = showLog
+            isLogDialogOpen = showLog,
+            currentTab = tab
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = PeriodUiState()
     )
+
+    fun selectTab(tab: TrackerTab) {
+        _currentTab.value = tab
+    }
 
     init {
         viewModelScope.launch {
@@ -102,6 +123,18 @@ class PeriodViewModel(
         viewModelScope.launch {
             repository.deleteDailyLog(date)
             _isLogDialogOpen.value = false
+        }
+    }
+
+    fun getExportCsvData(): String {
+        return com.example.periodtracker.data.csv.CsvManager.generateCsv(uiState.value.dailyLogs)
+    }
+
+    fun importCsvContent(csvContent: String, onResult: (Int) -> Unit) {
+        val parsed = com.example.periodtracker.data.csv.CsvManager.parseCsv(csvContent)
+        viewModelScope.launch {
+            val count = repository.importDailyLogs(parsed)
+            onResult(count)
         }
     }
 
