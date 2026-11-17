@@ -6,6 +6,7 @@ import com.example.periodtracker.data.model.NotificationPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.time.LocalDate
 
 class PreferencesManager(context: Context) {
 
@@ -18,6 +19,20 @@ class PreferencesManager(context: Context) {
         private const val PREFS_NAME = "period_tracker_prefs"
         private const val KEY_NOTIF_ENABLED = "key_notif_enabled"
         private const val KEY_NOTIF_DAYS_BEFORE = "key_notif_days_before"
+        private const val KEY_LAST_NOTIFIED_DATE = "key_last_notified_date"
+    }
+
+    fun getLastNotifiedDate(): LocalDate? {
+        val value = prefs.getString(KEY_LAST_NOTIFIED_DATE, null) ?: return null
+        return try {
+            LocalDate.parse(value)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun setLastNotifiedDate(date: LocalDate) {
+        prefs.edit().putString(KEY_LAST_NOTIFIED_DATE, date.toString()).apply()
     }
 
     private fun loadNotificationPreferences(): NotificationPreferences {

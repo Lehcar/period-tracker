@@ -40,16 +40,24 @@ import com.example.periodtracker.data.model.FlowIntensity
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+
 @Composable
 fun DailyFlowDialog(
     selectedDate: LocalDate,
     currentLog: DailyLog?,
-    onSaveFlow: (FlowIntensity) -> Unit,
+    onSaveFlow: (FlowIntensity, String?) -> Unit,
     onDeleteLog: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val dateStr = selectedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy"))
     val currentFlow = currentLog?.flowIntensity ?: FlowIntensity.NONE
+    var selectedFlowState by remember(currentLog) { mutableStateOf(currentFlow) }
+    var notesText by remember(currentLog) { mutableStateOf(currentLog?.notes ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -81,56 +89,93 @@ fun DailyFlowDialog(
                     title = "Heavy Flow",
                     subtitle = "Heavy bleeding day",
                     color = Color(0xFFD81B60),
-                    isSelected = (currentFlow == FlowIntensity.HEAVY),
-                    onClick = { onSaveFlow(FlowIntensity.HEAVY) }
+                    isSelected = (selectedFlowState == FlowIntensity.HEAVY),
+                    onClick = {
+                        selectedFlowState = FlowIntensity.HEAVY
+                        onSaveFlow(FlowIntensity.HEAVY, notesText.ifBlank { null })
+                    }
                 )
 
                 FlowOptionCard(
                     title = "Medium Flow",
                     subtitle = "Moderate bleeding day",
                     color = Color(0xFFEC407A),
-                    isSelected = (currentFlow == FlowIntensity.MEDIUM),
-                    onClick = { onSaveFlow(FlowIntensity.MEDIUM) }
+                    isSelected = (selectedFlowState == FlowIntensity.MEDIUM),
+                    onClick = {
+                        selectedFlowState = FlowIntensity.MEDIUM
+                        onSaveFlow(FlowIntensity.MEDIUM, notesText.ifBlank { null })
+                    }
                 )
 
                 FlowOptionCard(
                     title = "Light Flow",
                     subtitle = "Spotting or light flow",
                     color = Color(0xFFF48FB1),
-                    isSelected = (currentFlow == FlowIntensity.LIGHT),
-                    onClick = { onSaveFlow(FlowIntensity.LIGHT) }
+                    isSelected = (selectedFlowState == FlowIntensity.LIGHT),
+                    onClick = {
+                        selectedFlowState = FlowIntensity.LIGHT
+                        onSaveFlow(FlowIntensity.LIGHT, notesText.ifBlank { null })
+                    }
                 )
 
                 FlowOptionCard(
                     title = "Unknown Flow",
                     subtitle = "Flow level unrecorded or uncertain",
                     color = Color(0xFFBA68C8),
-                    isSelected = (currentFlow == FlowIntensity.UNKNOWN),
-                    onClick = { onSaveFlow(FlowIntensity.UNKNOWN) }
+                    isSelected = (selectedFlowState == FlowIntensity.UNKNOWN),
+                    onClick = {
+                        selectedFlowState = FlowIntensity.UNKNOWN
+                        onSaveFlow(FlowIntensity.UNKNOWN, notesText.ifBlank { null })
+                    }
                 )
 
                 FlowOptionCard(
                     title = "None / Clear Entry",
                     subtitle = "No flow recorded",
                     color = Color.Gray,
-                    isSelected = (currentFlow == FlowIntensity.NONE),
-                    onClick = { onSaveFlow(FlowIntensity.NONE) }
+                    isSelected = (selectedFlowState == FlowIntensity.NONE),
+                    onClick = {
+                        selectedFlowState = FlowIntensity.NONE
+                        onSaveFlow(FlowIntensity.NONE, notesText.ifBlank { null })
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Notes (optional):",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+
+                OutlinedTextField(
+                    value = notesText,
+                    onValueChange = { notesText = it },
+                    placeholder = { Text("Symptoms, mood, notes...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
                 )
             }
         },
         confirmButton = {
-            if (currentLog != null && currentLog.isPeriodDay) {
+            Row {
+                if (currentLog != null && currentLog.isPeriodDay) {
+                    TextButton(
+                        onClick = onDeleteLog,
+                        colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD32F2F))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.size(4.dp))
+                        Text("Delete")
+                    }
+                }
                 TextButton(
-                    onClick = onDeleteLog,
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD32F2F))
+                    onClick = { onSaveFlow(selectedFlowState, notesText.ifBlank { null }) }
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.size(4.dp))
-                    Text("Delete Entry")
+                    Text("Save")
                 }
             }
         },

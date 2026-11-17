@@ -44,4 +44,17 @@ class CsvManagerTest {
         assertEquals(LocalDate.of(2026, 4, 3), logs[2].date)
         assertEquals(FlowIntensity.UNKNOWN, logs[2].flowIntensity)
     }
+
+    @Test
+    fun `parseCsv handles multiline notes and escaped quotes in CSV content`() {
+        val multilineNotes = "Line 1\nLine 2 with \"quotes\""
+        val originalLog = DailyLog(LocalDate.of(2026, 5, 1), FlowIntensity.HEAVY, notes = multilineNotes)
+        val csv = CsvManager.generateCsv(listOf(originalLog))
+
+        val parsed = CsvManager.parseCsv(csv)
+        assertEquals(1, parsed.size)
+        assertEquals(LocalDate.of(2026, 5, 1), parsed[0].date)
+        assertEquals(FlowIntensity.HEAVY, parsed[0].flowIntensity)
+        assertEquals(multilineNotes, parsed[0].notes)
+    }
 }

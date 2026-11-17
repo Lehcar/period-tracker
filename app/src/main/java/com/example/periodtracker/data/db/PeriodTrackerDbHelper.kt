@@ -37,12 +37,12 @@ class PeriodTrackerDbHelper(context: Context) : SQLiteOpenHelper(
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_DAILY_LOGS")
-        onCreate(db)
+        // Each future schema bump must add its own explicit, non-destructive migration
+        // step here (e.g. ALTER TABLE). Never drop daily_logs - that erases a user's
+        // entire logged history.
     }
 
-    fun upsertDailyLog(log: DailyLog) {
-        val db = writableDatabase
+    private fun upsertDailyLog(db: SQLiteDatabase, log: DailyLog) {
         val values = ContentValues().apply {
             put(COLUMN_DATE, log.date.toString())
             put(COLUMN_FLOW, log.flowIntensity.name)
@@ -54,6 +54,22 @@ class PeriodTrackerDbHelper(context: Context) : SQLiteOpenHelper(
             values,
             SQLiteDatabase.CONFLICT_REPLACE
         )
+    }
+
+    fun upsertDailyLog(log: DailyLog) {
+        upsertDailyLog(writableDatabase, log)
+    }
+
+    fun upsertDailyLogs(logs: List<DailyLog>): Int {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            logs.forEach { upsertDailyLog(db, it) }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return logs.size
     }
 
     fun getDailyLog(date: LocalDate): DailyLog? {

@@ -79,13 +79,14 @@ class PeriodViewModelTest {
     fun `saveFlowForSelectedDate updates UI state and logs`() = runTest {
         val targetDate = LocalDate.of(2026, 4, 15)
         viewModel.selectDate(targetDate)
-        viewModel.saveFlowForSelectedDate(FlowIntensity.HEAVY)
+        viewModel.saveFlowForSelectedDate(FlowIntensity.HEAVY, notes = "Cramps and fatigue")
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertEquals(targetDate, state.selectedDate)
         assertEquals(1, state.dailyLogs.size)
         assertEquals(FlowIntensity.HEAVY, state.selectedLog?.flowIntensity)
+        assertEquals("Cramps and fatigue", state.selectedLog?.notes)
     }
 
     @Test

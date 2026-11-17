@@ -49,7 +49,12 @@ object PeriodNotificationHelper {
         createNotificationChannel(context)
 
         val dateStr = estimatedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
-        val contentText = "Your next period is estimated to start in $daysBefore ${if (daysBefore == 1) "day" else "days"} ($dateStr)."
+        val timeFrame = when (daysBefore) {
+            0 -> "today"
+            1 -> "tomorrow"
+            else -> "in $daysBefore days"
+        }
+        val contentText = "Your next period is estimated to start $timeFrame ($dateStr)."
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_red_dot)

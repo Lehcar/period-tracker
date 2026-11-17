@@ -11,10 +11,14 @@ object PeriodAnalytics {
 
     /**
      * Groups daily logs marked as period days into discrete PeriodCycle objects.
-     * Consecutive days (or days with up to 1 gap day) belong to the same cycle.
+     * Logs up to 10 days apart are treated as the same period (tolerating sparse
+     * logging, e.g. only the first/last day of a period being recorded); periods
+     * are normally weeks apart, so a larger gap starts a new cycle.
+     * Logs dated after [today] are excluded so a mistaken future-dated entry
+     * can't anchor or corrupt a cycle.
      */
-    fun extractPeriodCycles(logs: List<DailyLog>): List<PeriodCycle> {
-        val periodLogs = logs.filter { it.isPeriodDay }.sortedBy { it.date }
+    fun extractPeriodCycles(logs: List<DailyLog>, today: LocalDate = LocalDate.now()): List<PeriodCycle> {
+        val periodLogs = logs.filter { it.isPeriodDay && !it.date.isAfter(today) }.sortedBy { it.date }
         if (periodLogs.isEmpty()) return emptyList()
 
         val cycles = mutableListOf<PeriodCycle>()
@@ -24,8 +28,7 @@ object PeriodAnalytics {
         for (i in 1 until periodLogs.size) {
             val logDate = periodLogs[i].date
             val gapDays = ChronoUnit.DAYS.between(cycleEnd, logDate)
-            
-            // Allow up to 10-day gap between logs belonging to the same monthly period cycle
+
             if (gapDays <= 10) {
                 cycleEnd = logDate
             } else {
@@ -45,9 +48,10 @@ object PeriodAnalytics {
     fun calculateMedianCycleLength(cycles: List<PeriodCycle>): Double? {
         if (cycles.size < 2) return null
 
+        val sortedCycles = cycles.sortedBy { it.startDate }
         val cycleLengths = mutableListOf<Double>()
-        for (i in 0 until cycles.size - 1) {
-            val daysBetween = ChronoUnit.DAYS.between(cycles[i].startDate, cycles[i + 1].startDate).toDouble()
+        for (i in 0 until sortedCycles.size - 1) {
+            val daysBetween = ChronoUnit.DAYS.between(sortedCycles[i].startDate, sortedCycles[i + 1].startDate).toDouble()
             cycleLengths.add(daysBetween)
         }
 
@@ -83,7 +87,7 @@ object PeriodAnalytics {
      * Computes all stats for the given daily logs relative to a target date (default today).
      */
     fun computeStats(logs: List<DailyLog>, today: LocalDate = LocalDate.now()): PeriodStats {
-        val cycles = extractPeriodCycles(logs)
+        val cycles = extractPeriodCycles(logs, today)
         val medianCycle = calculateMedianCycleLength(cycles)
         val avgDuration = calculateAveragePeriodLength(cycles)
         val nextStart = calculateNextEstimatedStartDate(cycles)
@@ -95,7 +99,7 @@ object PeriodAnalytics {
             nextEstimatedStartDate = nextStart,
             daysUntilNextPeriod = daysUntil,
             totalCyclesCount = cycles.size,
-            totalRecordedDaysCount = logs.count { it.isPeriodDay }
+            totalRecordedDaysCount = logs.count { it.isPeriodDay && !it.date.isAfter(today) }
         )
     }
 }

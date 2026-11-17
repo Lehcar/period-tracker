@@ -39,7 +39,7 @@ class PeriodRepositoryImpl(
 
     override suspend fun saveDailyLog(date: LocalDate, flowIntensity: FlowIntensity, notes: String?) {
         withContext(Dispatchers.IO) {
-            if (flowIntensity == FlowIntensity.NONE && notes.isNull_or_blank()) {
+            if (flowIntensity == FlowIntensity.NONE && notes.isNullOrBlank()) {
                 dbHelper.deleteDailyLog(date)
             } else {
                 dbHelper.upsertDailyLog(DailyLog(date = date, flowIntensity = flowIntensity, notes = notes))
@@ -51,11 +51,7 @@ class PeriodRepositoryImpl(
 
     override suspend fun importDailyLogs(logs: List<DailyLog>): Int {
         return withContext(Dispatchers.IO) {
-            var count = 0
-            for (log in logs) {
-                dbHelper.upsertDailyLog(log)
-                count++
-            }
+            val count = dbHelper.upsertDailyLogs(logs)
             _logsFlow.value = dbHelper.getAllDailyLogs()
             count
         }
@@ -75,6 +71,4 @@ class PeriodRepositoryImpl(
             _logsFlow.value = emptyList()
         }
     }
-
-    private fun String?.isNull_or_blank(): Boolean = this == null || this.trim().isEmpty()
 }

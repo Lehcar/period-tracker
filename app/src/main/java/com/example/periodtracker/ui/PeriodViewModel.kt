@@ -131,10 +131,10 @@ class PeriodViewModel(
         _displayedMonth.value = YearMonth.now()
     }
 
-    fun saveFlowForSelectedDate(flowIntensity: FlowIntensity) {
+    fun saveFlowForSelectedDate(flowIntensity: FlowIntensity, notes: String? = null) {
         val date = _selectedDate.value
         viewModelScope.launch {
-            repository.saveDailyLog(date, flowIntensity)
+            repository.saveDailyLog(date, flowIntensity, notes)
             _isLogDialogOpen.value = false
         }
     }
@@ -170,6 +170,7 @@ class PeriodViewModel(
     fun confirmWipeData() {
         viewModelScope.launch {
             repository.deleteAllData()
+            preferencesManager?.clearAllPreferences()
             _showWipeConfirmDialog.value = false
         }
     }

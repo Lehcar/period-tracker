@@ -2,6 +2,7 @@ package com.example.periodtracker.domain
 
 import com.example.periodtracker.data.model.DailyLog
 import com.example.periodtracker.data.model.FlowIntensity
+import com.example.periodtracker.data.model.PeriodCycle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -50,6 +51,20 @@ class PeriodAnalyticsTest {
 
         val cycles = PeriodAnalytics.extractPeriodCycles(logs)
         // Cycle intervals: 28, 30, 26 -> Sorted: 26, 28, 30 -> Median is 28.0
+        val median = PeriodAnalytics.calculateMedianCycleLength(cycles)
+        assertEquals(28.0, median!!, 0.001)
+    }
+
+    @Test
+    fun `calculateMedianCycleLength handles unsorted cycles list`() {
+        val cycles = listOf(
+            PeriodCycle(LocalDate.of(2026, 3, 26), LocalDate.of(2026, 3, 30)),
+            PeriodCycle(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 5)),
+            PeriodCycle(LocalDate.of(2026, 1, 29), LocalDate.of(2026, 1, 31)),
+            PeriodCycle(LocalDate.of(2026, 2, 28), LocalDate.of(2026, 3, 4))
+        )
+        // Cycle intervals: Jan1->Jan29 (28), Jan29->Feb28 (30), Feb28->Mar26 (26)
+        // Sorted lengths: 26, 28, 30 -> Median is 28.0
         val median = PeriodAnalytics.calculateMedianCycleLength(cycles)
         assertEquals(28.0, median!!, 0.001)
     }

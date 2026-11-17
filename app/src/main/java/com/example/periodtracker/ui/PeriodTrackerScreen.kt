@@ -43,6 +43,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,13 +55,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.periodtracker.data.model.FlowIntensity
+import com.example.periodtracker.notification.NotificationScheduler
 import com.example.periodtracker.ui.components.DailyFlowDialog
 import com.example.periodtracker.ui.components.MonthCalendarView
 import com.example.periodtracker.ui.components.NotificationSettingsScreenContent
 import com.example.periodtracker.ui.components.PeriodEstimateCard
 import com.example.periodtracker.ui.components.StatisticsScreenContent
 import com.example.periodtracker.ui.components.WipeDataConfirmDialog
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,17 +79,29 @@ fun PeriodTrackerScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    LaunchedEffect(uiState.notificationPreferences) {
+        if (uiState.notificationPreferences.enabled) {
+            NotificationScheduler.scheduleDailyCheck(context)
+        } else {
+            NotificationScheduler.cancelDailyCheck(context)
+        }
+    }
+
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/csv")
     ) { uri ->
         if (uri != null) {
-            try {
-                context.contentResolver.openOutputStream(uri)?.use { output ->
-                    output.write(viewModel.getExportCsvData().toByteArray())
+            scope.launch {
+                try {
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openOutputStream(uri)?.use { output ->
+                            output.write(viewModel.getExportCsvData().toByteArray())
+                        }
+                    }
+                    Toast.makeText(context, "Exported period data to CSV successfully!", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Failed to export CSV: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                 }
-                Toast.makeText(context, "Exported period data to CSV successfully!", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(context, "Failed to export CSV: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -94,17 +110,21 @@ fun PeriodTrackerScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
-            try {
-                val csvContent = context.contentResolver.openInputStream(uri)?.use { input ->
-                    input.bufferedReader().use { it.readText() }
-                }
-                if (csvContent != null) {
-                    viewModel.importCsvContent(csvContent) { count ->
-                        Toast.makeText(context, "Successfully imported $count entries from CSV!", Toast.LENGTH_SHORT).show()
+            scope.launch {
+                try {
+                    val csvContent = withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            input.bufferedReader().use { it.readText() }
+                        }
                     }
+                    if (csvContent != null) {
+                        viewModel.importCsvContent(csvContent) { count ->
+                            Toast.makeText(context, "Successfully imported $count entries from CSV!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Failed to import CSV: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                 }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Failed to import CSV: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -319,7 +339,7 @@ fun PeriodTrackerScreen(
                 DailyFlowDialog(
                     selectedDate = uiState.selectedDate,
                     currentLog = uiState.selectedLog,
-                    onSaveFlow = { flow -> viewModel.saveFlowForSelectedDate(flow) },
+                    onSaveFlow = { flow, notes -> viewModel.saveFlowForSelectedDate(flow, notes) },
                     onDeleteLog = { viewModel.deleteSelectedDateLog() },
                     onDismiss = { viewModel.closeLogDialog() }
                 )

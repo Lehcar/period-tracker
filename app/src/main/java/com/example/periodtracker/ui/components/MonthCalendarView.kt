@@ -90,7 +90,10 @@ fun MonthCalendarView(
                             contentDescription = "Previous Month"
                         )
                     }
-                    IconButton(onClick = { onMonthChanged(1) }) {
+                    IconButton(
+                        onClick = { onMonthChanged(1) },
+                        enabled = displayedMonth < YearMonth.from(today)
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = "Next Month"
@@ -139,6 +142,7 @@ fun MonthCalendarView(
                             val date = displayedMonth.atDay(dayCounter)
                             val isSelected = (date == selectedDate)
                             val isToday = (date == today)
+                            val isFuture = date.isAfter(today)
                             val log = logsMap[date]
 
                             CalendarDayCell(
@@ -146,6 +150,7 @@ fun MonthCalendarView(
                                 log = log,
                                 isSelected = isSelected,
                                 isToday = isToday,
+                                isFuture = isFuture,
                                 onClick = { onDateSelected(date) },
                                 modifier = Modifier.weight(1f)
                             )
@@ -183,6 +188,7 @@ private fun CalendarDayCell(
     log: DailyLog?,
     isSelected: Boolean,
     isToday: Boolean,
+    isFuture: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -196,6 +202,7 @@ private fun CalendarDayCell(
 
     val isPeriodDay = log?.isPeriodDay == true
     val textColor = when {
+        isFuture -> Color(0xFFBDBDBD)
         isPeriodDay -> Color.White
         isToday -> Color(0xFFE91E63)
         else -> Color(0xFF212121)
@@ -216,7 +223,9 @@ private fun CalendarDayCell(
                     Modifier
                 }
             )
-            .clickable { onClick() },
+            .then(
+                if (isFuture) Modifier else Modifier.clickable { onClick() }
+            ),
         contentAlignment = Alignment.Center
     ) {
         Text(
