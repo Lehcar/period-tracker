@@ -41,26 +41,42 @@ object PeriodAnalytics {
         return cycles
     }
 
+    const val MAX_SINGLE_CYCLE_DAYS = 50.0
+    const val MIN_SINGLE_CYCLE_DAYS = 15.0
+    const val DEFAULT_CYCLE_LENGTH_DAYS = 28.0
+
     /**
      * Calculates median time between period start dates in days.
+     * Filters out outlier gaps (> 50 days) that indicate skipped or unlogged months
+     * so that missed months do not distort cycle predictions.
      * Requires at least 2 period cycles.
      */
     fun calculateMedianCycleLength(cycles: List<PeriodCycle>): Double? {
         if (cycles.size < 2) return null
 
         val sortedCycles = cycles.sortedBy { it.startDate }
-        val cycleLengths = mutableListOf<Double>()
+        val validCycleLengths = mutableListOf<Double>()
+        val normalizedCycleLengths = mutableListOf<Double>()
+
         for (i in 0 until sortedCycles.size - 1) {
             val daysBetween = ChronoUnit.DAYS.between(sortedCycles[i].startDate, sortedCycles[i + 1].startDate).toDouble()
-            cycleLengths.add(daysBetween)
+            if (daysBetween in MIN_SINGLE_CYCLE_DAYS..MAX_SINGLE_CYCLE_DAYS) {
+                validCycleLengths.add(daysBetween)
+            } else if (daysBetween > MAX_SINGLE_CYCLE_DAYS) {
+                val estimatedCycles = (daysBetween / DEFAULT_CYCLE_LENGTH_DAYS).roundToLong().coerceAtLeast(1)
+                normalizedCycleLengths.add(daysBetween / estimatedCycles)
+            }
         }
 
-        cycleLengths.sort()
-        val count = cycleLengths.size
+        val targetLengths = if (validCycleLengths.isNotEmpty()) validCycleLengths else normalizedCycleLengths
+        if (targetLengths.isEmpty()) return null
+
+        val sortedLengths = targetLengths.sorted()
+        val count = sortedLengths.size
         return if (count % 2 == 1) {
-            cycleLengths[count / 2]
+            sortedLengths[count / 2]
         } else {
-            (cycleLengths[count / 2 - 1] + cycleLengths[count / 2]) / 2.0
+            (sortedLengths[count / 2 - 1] + sortedLengths[count / 2]) / 2.0
         }
     }
 

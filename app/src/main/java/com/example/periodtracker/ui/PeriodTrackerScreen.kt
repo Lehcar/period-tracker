@@ -106,6 +106,14 @@ fun PeriodTrackerScreen(
         }
     }
 
+    val onExportCsvRequested = {
+        if (uiState.dailyLogs.isEmpty()) {
+            Toast.makeText(context, "No period data available to export.", Toast.LENGTH_SHORT).show()
+        } else {
+            exportLauncher.launch("period_tracker_logs.csv")
+        }
+    }
+
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -216,7 +224,7 @@ fun PeriodTrackerScreen(
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        exportLauncher.launch("period_tracker_logs.csv")
+                        onExportCsvRequested()
                     },
                     icon = { Icon(imageVector = Icons.Default.Share, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
@@ -351,7 +359,7 @@ fun PeriodTrackerScreen(
                     onConfirm = { viewModel.confirmWipeData() },
                     onExportFirst = {
                         viewModel.dismissWipeDialog()
-                        exportLauncher.launch("period_tracker_logs.csv")
+                        onExportCsvRequested()
                     },
                     onDismiss = { viewModel.dismissWipeDialog() }
                 )
@@ -383,7 +391,11 @@ private fun SelectedDayCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 12.dp)
+            ) {
                 Text(
                     text = formattedDate,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
@@ -396,7 +408,7 @@ private fun SelectedDayCard(
                     FlowIntensity.HEAVY -> "🩸 Heavy flow recorded"
                     FlowIntensity.MEDIUM -> "🌺 Medium flow recorded"
                     FlowIntensity.LIGHT -> "🌸 Light flow recorded"
-                    FlowIntensity.UNKNOWN -> "❓ Period flow recorded (intensity unknown)"
+                    FlowIntensity.UNKNOWN -> "❓ Approximate period recorded"
                     FlowIntensity.NONE -> "No period flow recorded for this day"
                 }
 

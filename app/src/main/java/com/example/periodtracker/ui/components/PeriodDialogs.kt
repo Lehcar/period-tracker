@@ -117,8 +117,8 @@ fun DailyFlowDialog(
                 )
 
                 FlowOptionCard(
-                    title = "Unknown Flow",
-                    subtitle = "Flow level unrecorded or uncertain",
+                    title = "Approximate / Unknown Entry",
+                    subtitle = "Period occurred (exact dates or flow intensity uncertain)",
                     color = Color(0xFFBA68C8),
                     isSelected = (selectedFlowState == FlowIntensity.UNKNOWN),
                     onClick = {

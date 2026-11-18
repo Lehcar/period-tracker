@@ -113,6 +113,37 @@ class PeriodAnalyticsTest {
     }
 
     @Test
+    fun `calculateMedianCycleLength filters out skipped month gaps`() {
+        val logs = listOf(
+            // Cycle 1: Jan 1
+            DailyLog(LocalDate.of(2026, 1, 1), FlowIntensity.HEAVY),
+            // Cycle 2: Jan 29 (28 days later)
+            DailyLog(LocalDate.of(2026, 1, 29), FlowIntensity.HEAVY),
+            // Cycle 3: April 25 (86 days later - skipped Feb & Mar!)
+            DailyLog(LocalDate.of(2026, 4, 25), FlowIntensity.HEAVY),
+            // Cycle 4: May 23 (28 days later)
+            DailyLog(LocalDate.of(2026, 5, 23), FlowIntensity.HEAVY)
+        )
+
+        val cycles = PeriodAnalytics.extractPeriodCycles(logs)
+        // Intervals: Jan1->Jan29 (28), Jan29->Apr25 (86 - skipped), Apr25->May23 (28)
+        // 86 is > 50 days (outlier), so median calculation ignores 86 and averages valid intervals: [28, 28] -> 28.0
+        val median = PeriodAnalytics.calculateMedianCycleLength(cycles)
+        assertEquals(28.0, median!!, 0.001)
+    }
+
+    @Test
+    fun `calculateMedianCycleLength normalizes gap when only large gap exists`() {
+        val cycles = listOf(
+            PeriodCycle(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 5)),
+            PeriodCycle(LocalDate.of(2026, 2, 26), LocalDate.of(2026, 3, 2)) // 56 days gap (2 x 28)
+        )
+        // 56 days gap normalized by round(56 / 28) = 2 -> 28.0
+        val median = PeriodAnalytics.calculateMedianCycleLength(cycles)
+        assertEquals(28.0, median!!, 0.001)
+    }
+
+    @Test
     fun `computeStats handles empty logs safely`() {
         val stats = PeriodAnalytics.computeStats(emptyList(), LocalDate.of(2026, 3, 1))
         assertNull(stats.medianCycleLengthDays)
